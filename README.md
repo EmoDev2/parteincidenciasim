@@ -8,9 +8,13 @@ Simulador 2D de despacho de dirección, estilo juego `.io`. Eres quien firma los
 
 ## ▶️ Cómo jugar
 
+Al abrirlo, pulsa cualquier tecla (o haz clic / toca) y verás la presentación de Mallionic, 2 segundos en negro y una pantalla de carga animada antes del menú.
+
 Abre `index.html` con Chrome, Edge o Firefox. No necesita instalar nada.
 
 > Para jugar **desde el móvil** hay que servir la carpeta desde una web (Netlify Drop, GitHub Pages, itch.io…). Abierto como archivo suelto no funciona bien en la mayoría de móviles.
+
+La primera vez, un **tutorial** te guía paso a paso con tu primer parte (se puede saltar y repetir desde *¿Cómo se juega?*).
 
 ### El parte
 1. **Lee** el parte: alumno, curso, profesor, materia, descripción de la incidencia y gravedad (el profesor marca con X o tick irregulares).
@@ -18,9 +22,12 @@ Abre `index.html` con Chrome, Edge o Firefox. No necesita instalar nada.
 3. Si el profesor pide **expulsión**, decide **SÍ o NO** (`¿APROBAR LA EXPULSIÓN?`):
    - Si es justa → **SÍ**, casilla *Expulsión* y los números (días / semanas / meses).
    - Si es desproporcionada → **NO** y pon solo *Amonestación*.
-4. Escribe los números **a mano** en las casillas (vacío = 0). El juego detecta lo que dibujas.
+4. Escribe los números **a mano** en las casillas (vacío = 0). El juego detecta lo que dibujas. El tiempo vale en cualquier unidad: **1 mes = 28 a 31 días** y 1 semana = 7 días.
 5. **Firma** en el recuadro de Dirección y pulsa **ENTREGAR** (o `Enter`).
 6. Si el parte **no tiene sentido** (“me ha mirado raro”), pulsa **ANULAR**: +150 puntos. Anular un parte normal cuesta puntos.
+
+### 📞 Llamadita a casa
+Mientras firmas puedes llamar a la familia (una vez por parte). Elige abajo qué decir: **seria**, **comprensiva**, **borde** o mandarla **a tomar por culo**. La respuesta cambia según el carácter de la familia. Hablar bien da monedas y puntos extra; hablar mal desahoga, pero trae quejas y visitas.
 
 ### Jornadas y evaluaciones
 - Una **jornada** son 6 partes.
@@ -32,6 +39,11 @@ Abre `index.html` con Chrome, Edge o Firefox. No necesita instalar nada.
 - **DESAHÓGATE**: grito y lluvia de papeles para bajar el estrés.
 - **Rango de mano dura**: 20 rangos, de *Aprendiz de Dirección* a *Directora del Calabozo Eterno*. Suben con errores, expulsiones y partes por todo.
 - Si el **estrés** llega al 100%, te quemas y termina la partida. Se guarda tu récord.
+
+### Monedas, tienda y guardado
+- Ganas **monedas** firmando bien, anulando partes absurdos, acertando con las madres y en las evaluaciones, y al acabar cada jornada.
+- En la **🏪 Tienda** puedes comprar café, tila y mejoras permanentes (planta zen, secretaría, sello de oro, taza, cartel «No molestar»).
+- La partida se **guarda sola** en el navegador. Desde el menú puedes **Continuar** o empezar una nueva. Al quemarte (estrés 100%) la partida se borra; el récord se conserva.
 
 ### Controles
 | Acción | Ratón / táctil | Teclado |
@@ -50,7 +62,7 @@ En **móvil**, al tocar una casilla o la firma se abre una pizarra grande para e
 
 - Miles de incidencias generadas por combinación (vapeo, baño, clase, convivencia, daños, redes, excursiones, FP…), con nombres, cursos (1º ESO a 2º Bach y FP) y profesores variados.
 - Partes **justos**, **con sanciones exageradas** y **sin sentido**.
-- Firma del profesor generada con **curvas bezier aleatorias**.
+- Firma del profesor **realista**: letra cursiva trazada con curvas a partir de su nombre, con presión, inclinación y rúbrica aleatorias.
 - **Reconocedor de dígitos** manuscritos (red neuronal pequeña entrenada con el conjunto de dígitos de scikit-learn, integrada en `model.js`).
 - Música y efectos **sintetizados** con WebAudio (sin archivos de audio).
 - Despacho en **pseudo-3D** con cámara animada.
@@ -63,7 +75,11 @@ game.js           motor del juego, escenas, papel, firma, madre, despacho 3D
 data.js           nombres, cursos, partes, madres
 incidents.js      generador de incidencias
 incidents2.js     ampliación de datos (más familias, detalles, madres…)
+signature.js      firmas realistas de los profesores
+call.js           llamadas a casa
 eval.js           sesión de evaluación (notas, informes, votación)
+meta.js           guardado, monedas, tienda, splash y menú
+mallionic-logo.png logo del splash
 audio.js          música y efectos sintetizados (+ soporte de MP3)
 model.js          pesos del reconocedor de dígitos
 img/              PNG/JPG (taza, reloj, planta, sello, pluma, textura de mesa y papel…)
@@ -76,7 +92,7 @@ icon.png          icono, favicon y miniatura
 Pon archivos `.mp3` en `audio/` con estos nombres y sustituirán a los sonidos sintetizados (si falta alguno, se usa el sintetizado):
 
 - Música (bucle): `music-menu.mp3`, `music-play.mp3`, `music-tense.mp3`, `music-office.mp3`
-- Efectos: `click`, `paper`, `stamp`, `ding`, `ok`, `bad`, `bell`, `alarm`, `knock`, `door`, `chair`, `scream`, `boss`, `fanfare`, `tick`, `void`, `angryVoice` (cada uno como `nombre.mp3`)
+- Efectos: `click`, `paper`, `stamp`, `ding`, `ok`, `bad`, `bell`, `alarm`, `knock`, `door`, `chair`, `scream`, `boss`, `fanfare`, `tick`, `void`, `angryVoice`, `coin`, `spend`, `denied`, `ring`, `hang` (cada uno como `nombre.mp3`)
 
 ## 🖼️ Cambiar las imágenes
 
@@ -94,6 +110,9 @@ Las imágenes de `img/` son sustituibles por otras con **el mismo nombre**: `mug
 
 ## 📄 Créditos y licencias
 
+**© 2026 Mallionic Inc. Todos los derechos reservados.** El juego y el logotipo de Mallionic son de Mallionic Inc. (ver `LICENSE`).
+
 - Código, imágenes generadas, música y efectos: creados para este proyecto.
 - Tipografías de **Google Fonts** (licencia abierta): UnifrakturCook, Caveat, Patrick Hand, Lora y Special Elite. Sin conexión se usan fuentes del sistema.
 - El `icon.png` es obra del autor del juego.
+- Las tipografías de terceros mantienen sus propias licencias.
