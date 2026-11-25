@@ -1,0 +1,10 @@
+MP3 OPCIONALES
+Si pones aqui archivos .mp3 con estos nombres, el juego los usa en vez del sonido sintetizado.
+Si falta alguno, se usa el sintetizado automaticamente.
+
+MUSICA (se repite en bucle):
+  music-menu.mp3   music-play.mp3   music-tense.mp3   music-office.mp3
+EFECTOS:
+  click  hover  paper  stamp  ding  ok  bad  bell  alarm  knock  door  chair
+  scream  boss  fanfare  tick  void  angryVoice   (cada uno como nombre.mp3)
+Nota: pen y step siempre son sinteticos (suenan muchas veces seguidas).

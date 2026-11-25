@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Firma Tu Parte de Incidencias</title>
+<meta name="description" content="Bear ha puesto un parte… no te preocupes, desahógate y firma partes de incidencias. El simulador del IES Calagman Skecherini.">
+<link rel="icon" type="image/png" href="favicon-64.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Firma Tu Parte de Incidencias">
+<meta property="og:description" content="Bear ha puesto un parte… no te preocupes, desahógate y firma partes de incidencias.">
+<meta property="og:image" content="og-image.jpg">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="og-image.jpg">
+<meta name="theme-color" content="#2a1208">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500&family=Patrick+Hand&family=Lora:wght@500;700&family=Special+Elite&family=UnifrakturCook:wght@700&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;height:100%;background:#120804;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+body{display:flex;align-items:center;justify-content:center}
+canvas{display:block;cursor:crosshair;touch-action:none}
+html,body{overscroll-behavior:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+#rotate{display:none;position:fixed;inset:0;z-index:9;background:#120804;color:#ffd98a;font:22px Georgia,serif;align-items:center;justify-content:center;text-align:center;flex-direction:column;padding:24px}
+#rotate .ph{font-size:64px;display:inline-block;animation:rot 2s ease-in-out infinite}
+@keyframes rot{0%,20%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
+@media (orientation:portrait) and (max-width:900px){#rotate{display:flex}}
+#loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#ffd98a;font:28px serif;background:#120804;z-index:5}
+</style>
+</head>
+<body>
+<div id="loading">Preparando los partes…</div>
+<div id="rotate"><div class="ph">📱</div><p>Gira el móvil en horizontal<br>para firmar partes</p></div>
+<canvas id="c"></canvas>
+<script src="model.js"></script>
+<script src="data.js"></script>
+<script src="incidents.js"></script>
+<script src="audio.js"></script>
+<script src="eval.js"></script>
+<script src="incidents2.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
