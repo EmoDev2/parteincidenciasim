@@ -6,5 +6,5 @@ MUSICA (se repite en bucle):
   music-menu.mp3   music-play.mp3   music-tense.mp3   music-office.mp3
 EFECTOS:
   click  hover  paper  stamp  ding  ok  bad  bell  alarm  knock  door  chair
-  scream  boss  fanfare  tick  void  angryVoice   (cada uno como nombre.mp3)
+  scream  boss  fanfare  tick  void  angryVoice  coin  spend  denied  ring  hang   (cada uno como nombre.mp3)
 Nota: pen y step siempre son sinteticos (suenan muchas veces seguidas).

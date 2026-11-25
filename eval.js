@@ -152,11 +152,12 @@ let EV = null;
 function startEval() {
   const n = Math.min(4, 2 + Math.floor(((G.evals || 0)) / 2));
   EV = { n: (G.evals = (G.evals || 0) + 1), students: Array.from({ length: n }, makeEvalStudent), si: 0, page: 0, phase: "intro", t: 0, total: 0, res: [], avatars: Array.from({ length: 8 }, () => look(chance(0.5))), fb: null };
+  G.pendingEval = true; saveGame();
   go("eval", () => { Snd.music("office"); Snd.bell(); });
 }
 const evalPages = st => 1 + Math.ceil(st.subs.length / 3) + 1;
 function evalDecide(opt) {
-  const E = EV, st = E.students[E.si], ok = opt === st.ideal; E.res.push({ st, opt, ok });
+  const E = EV, st = E.students[E.si], ok = opt === st.ideal; E.res.push({ st, opt, ok }); if (ok) earn(30, 640, 360);
   const pts = ok ? 300 : -150; E.total += pts; G.score = Math.max(0, G.score + pts); G.stress = Math.max(0, Math.min(100, G.stress + (ok ? -6 : 10)));
   if (opt === "rep") addRigor(2); else if (opt === "div") addRigor(1);
   E.fb = { ok, pts, text: explain(st), opt }; E.phase = "feedback"; E.t = 0; if (ok) Snd.ok(); else Snd.bad(); Snd.stamp();
@@ -165,7 +166,7 @@ function evalDecide(opt) {
 function evalNext() {
   const E = EV; if (E.si + 1 < E.students.length) { E.si++; E.page = 0; E.phase = "review"; E.t = 0; E.fb = null; Snd.paper(); } else { E.phase = "end"; E.t = 0; Snd.fanfare(); }
 }
-function evalExit() { EV = null; go("play", () => { Snd.music("play"); setupCur(); }); }
+function evalExit() { EV = null; G.pendingEval = false; go("play", () => { Snd.music("play"); setupCur(); saveGame(); }); }
 /* ===== DIBUJO ===== */
 const gradeCol = g => g >= 6 ? "#2e9e4a" : g === 5 ? "#e6b800" : "#d03a2a";
 const gradeLab = g => g >= 9 ? "SB" : g >= 7 ? "NT" : g === 6 ? "BI" : g === 5 ? "SU" : "IN";

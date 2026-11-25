@@ -207,7 +207,7 @@ function makeParte(difficulty, boss) {
     date: genDate(), hour: pick(["1ª", "2ª", "3ª", "4ª", "5ª", "6ª", "Recreo"]) + (chance(0.5) ? " hora" : ""),
     text: genIncident(sev, st, mat, boss, special, kind), kind, special, expected, ink, seed,
     gravity: kind === "nonsense" ? rint(0, 2) : gravity, marks: { g: [mstyle(), mstyle(), mstyle()], fam: chance(0.55 + sev * 0.1), reinc: chance(0.2 + sev * 0.18), famStyle: mstyle(), reincStyle: mstyle() },
-    sig: genSignature(rng), sigInk: pick(["#10206a", "#161616", "#0a3a8f", "#3b0a5c", "#0a0a0a"]),
+    sig: genSignature(rng, teacher.full), sigInk: pick(["#10206a", "#161616", "#0a3a8f", "#3b0a5c", "#0a0a0a"]),
     sigW: 0, born: 0, lines: null, fs: 20,
     player: { approve: null, boxes: [false, false, false], cells: Array.from({ length: 6 }, () => ({ strokes: [], digit: null, conf: 0, dirty: false, t: 0 })), sig: [] }
   };

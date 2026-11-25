@@ -5,7 +5,7 @@ const cv = document.getElementById("c"), ctx = cv.getContext("2d");
 const F_TITLE = '"UnifrakturCook","Old English Text MT","Luminari",serif', F_HAND = '"Patrick Hand","Caveat","Segoe Script","Bradley Hand","Comic Sans MS",cursive';
 const F_TYPE = '"Special Elite","Courier New",monospace', F_UI = '"Lora","Georgia","Times New Roman",serif';
 const ICON = new Image(); ICON.src = "icon.png";
-const IM = {}; [["mug", "png"], ["clock", "png"], ["plant", "png"], ["stamp", "png"], ["pen", "png"], ["papers", "png"], ["sheet", "png"], ["desk", "jpg"], ["paper", "jpg"]].forEach(([n, e]) => { const i = new Image(); i.onload = () => { IM[n] = i; }; i.src = "img/" + n + "." + e; }); // PNG/JPG reales en /img (sustituibles por tus fotos)
+const IM = {}; [["mug", "png"], ["clock", "png"], ["plant", "png"], ["stamp", "png"], ["pen", "png"], ["papers", "png"], ["sheet", "png"], ["desk", "jpg"], ["paper", "jpg"], ["loading", "jpg"]].forEach(([n, e]) => { const i = new Image(); i.onload = () => { IM[n] = i; }; i.src = "img/" + n + "." + e; }); // PNG/JPG reales en /img (sustituibles por tus fotos)
 let K = 1;
 function fit() {
   const s = Math.min(innerWidth / W, innerHeight / H), dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -98,7 +98,7 @@ function person(x, y, s, o) {
 
 /* ---------- ESTADO GLOBAL ---------- */
 const M = { x: 0, y: 0, down: false };
-let scene = "menu", btns = [], fade = { a: 0, dir: 0, next: null, fn: null }, now = 0, shake = 0, parts = [], toasts = [];
+let scene = "press", btns = [], fade = { a: 0, dir: 0, next: null, fn: null }, now = 0, shake = 0, parts = [], toasts = [];
 let best = 0; try { best = +localStorage.getItem("ftp_best") || 0; } catch (e) { }
 const RANKS = [[0, "Aprendiz de Dirección"], [3, "Becaria del Despacho"], [6, "Secretaria Temible"], [10, "Subdirectora"], [15, "Directora"], [21, "Directora Estricta"], [28, "Directora Severa"], [36, "Directora Implacable"], [45, "Directora de Hierro"], [55, "Directora de Acero"], [66, "Directora Inflexible"], [78, "Directora Temida"], [91, "Directora Legendaria"], [105, "Inspectora General"], [120, "Directora Suprema"], [136, "Directora Tirana"], [153, "Reina del Calabozo"], [171, "Emperatriz de los Partes"], [190, "Diosa de la Expulsión"], [210, "Directora del Calabozo Eterno"]];
 const rankIdx = r => { let k = 0; RANKS.forEach((q, i) => { if (r >= q[0]) k = i; }); return k; };
@@ -118,18 +118,72 @@ for (let i = 0; i < 14; i++) menu.papers.push({ x: rnd(0, W), y: rnd(0, H), r: r
 
 function go(next, fn) { if (fade.dir) return; fade = { a: 0, dir: 1, next, fn }; }
 function newGame() {
-  PAD = null;
+  PAD = null; drag = null; CALL = null;
   G = {
     score: 0, stress: 12, combo: 0, maxCombo: 0, signed: 0, wrong: 0, time: 0, queue: [], spawnT: 1.5, feed: [], cd: 0, feedT: 8, last: null, paused: false, over: false, bossCount: 0, momCount: 0,
-    shakeBtn: 0, hint: 0, difficulty: 0, rigor: 0, rank: 0, exps: 0, voids: 0, day: 1, dayCount: 0, evals: 0
+    shakeBtn: 0, hint: 0, difficulty: 0, rigor: 0, rank: 0, exps: 0, voids: 0, day: 1, dayCount: 0, evals: 0, coins: 0, items: {}, shop: false, call: false, pendingEval: false, saveT: 10
   };
   for (let i = 0; i < 2; i++) { const p = makeParte(0); G.queue.push(p); }
+  if (needTutorial()) startTutorial();
   toast("¡Comienza la jornada!", "#ffd75e");
   feed("Bear ha puesto un parte", "#ffd");
   feed("No te preocupes, desahógate y firma partes de incidencias.", "#9fe");
 }
 function feed(t, c) { G.feed.unshift({ t, c: c || "#fff", age: 0 }); if (G.feed.length > 7) G.feed.pop(); }
 function toast(t, c, big) { toasts.push({ t, c: c || "#fff", age: 0, big }); }
+
+/* ---------- TUTORIAL DEL PRIMER PARTE ---------- */
+let tutorialForced = false;
+function needTutorial() { if (tutorialForced) return true; try { return localStorage.getItem("ftp_tuto") !== "1"; } catch (e) { return true; } }
+function startTutorial() {
+  tutorialForced = false; const p = makeParte(0, false), s = p.student;
+  Object.assign(p, { kind: "fair", boss: false, special: false, sev: 2, gravity: 1, lines: null });
+  p.expected = { box: 1, d: 3, w: 0, m: 0, ask: true, approve: true, text: "Propongo expulsión de 3 días" };
+  p.text = gen("En el recreo, " + s.first + " " + s.last.split(" ")[0] + " vapeaba en los baños con otros dos alumnos. Saltó el detector de humo. Se le requisó un vapeador de sabor sandía y se avisó a la familia.", s.gender, s.first);
+  G.queue = [p]; G.tut = { step: 0 };
+}
+function endTutorial() {
+  G.tut = null; try { localStorage.setItem("ftp_tuto", "1"); } catch (e) { }
+  if (!G.queue.length) G.queue.push(makeParte(0)); G.queue.push(makeParte(0)); G.spawnT = 8; setupCur();
+}
+const sigLength = p => p.player.sig.reduce((a, s) => a + s.reduce((q, pt, i) => q + (i ? Math.hypot(pt.x - s[i - 1].x, pt.y - s[i - 1].y) : 0), 0), 0);
+const TUT = [
+  { r: [PX + 26, PY + 142, 588, 192], t: "1. Lee el parte", d: "Aquí está lo que ha pasado. Arriba tienes alumno, curso y profesor.", next: true },
+  { r: [PX + 26, PY + 424, 588, 28], t: "2. Qué pide el profesor", d: "Mira la SANCIÓN PROPUESTA: pide expulsión de 3 días por algo grave. Es justo.", next: true },
+  { r: [PX + 346, PY + 628, 232, 66], t: "3. Aprueba la expulsión", d: "Pulsa SÍ. (Si fuese una exageración, pulsarías NO y pondrías solo Amonestación.)" },
+  { r: [PX + 230, PY + 460, 156, 44], t: "4. Marca la casilla", d: "Marca solo la casilla «Expulsión»." },
+  { r: [PX + 82, PY + 536, 58, 66], t: "5. Escribe el número", d: "Dibuja un 3 con el ratón o el dedo en la casilla derecha de DÍAS. Las vacías cuentan como 0. La × borra." },
+  { r: [PX + 26, PY + 608, 308, 84], t: "6. Firma", d: "Haz tu firma en el recuadro de Dirección." },
+  { r: [710, 620, 198, 80], t: "7. Entrégalo", d: "Pulsa ENTREGAR (o la tecla Enter)." },
+  { r: null, t: "¡Ya sabes firmar!", d: "Si el parte es absurdo, pulsa ANULAR. Si te agobias, DESAHÓGATE. Que no se te acumulen y… suerte, Dirección.", next: true }
+];
+function updateTutorial() {
+  const T = G.tut, p = curParte(), pl = p && p.player;
+  if (T.step === 2 && pl && pl.approve === true) T.step = 3;
+  else if (T.step === 3 && pl && pl.boxes[1] && !pl.boxes[0] && !pl.boxes[2]) T.step = 4;
+  else if (T.step === 4 && pl && !drag && !pl.cells.some(c => c.dirty) && (pl.cells[0].digit || 0) * 10 + (pl.cells[1].digit || 0) === 3) T.step = 5;
+  else if (T.step === 5 && pl && !drag && sigLength(p) >= 90) T.step = 6;
+  else if (T.step === 6 && (!p || p.st !== "work")) T.step = 7;
+  else return;
+  Snd.ding();
+}
+function drawTutorial() {
+  const T = G.tut, S = TUT[T.step], r = S.r;
+  ctx.save(); ctx.fillStyle = "rgba(5,2,12,.55)"; ctx.beginPath(); ctx.rect(0, 0, W, H); if (r) ctx.rect(r[0], r[1], r[2], r[3]); ctx.fill("evenodd");
+  if (r) {
+    ctx.strokeStyle = "#ffd75e"; ctx.lineWidth = 4 + Math.sin(now * 6) * 1.5; ctx.shadowColor = "#ffd75e"; ctx.shadowBlur = 18; rr(r[0] - 4, r[1] - 4, r[2] + 8, r[3] + 8, 10); ctx.stroke();
+    const ax = r[0] + r[2] / 2, ay = r[1] - 16 - Math.abs(Math.sin(now * 4)) * 14; ctx.shadowBlur = 8; ctx.fillStyle = "#ffd75e"; ctx.strokeStyle = "#3a200a"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(ax, ay + 12); ctx.lineTo(ax - 20, ay - 14); ctx.lineTo(ax - 8, ay - 14); ctx.lineTo(ax - 8, ay - 40); ctx.lineTo(ax + 8, ay - 40); ctx.lineTo(ax + 8, ay - 14); ctx.lineTo(ax + 20, ay - 14); ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+  ctx.restore();
+  const x = 720, y = 250, w = 520, h = 230;
+  ctx.fillStyle = "#f6ebc4"; rr(x, y, w, h, 18); ctx.fill(); ctx.lineWidth = 5; ctx.strokeStyle = "#3a200a"; ctx.stroke();
+  txt("TUTORIAL · " + (T.step + 1) + "/" + TUT.length, x + w - 20, y + 28, { size: 13, font: F_TYPE, align: "right", color: "#8a6a3a" });
+  txt(S.t, x + 24, y + 48, { size: 32, font: F_TITLE, color: "#7a1a1a" });
+  wrap(S.d, w - 48, `21px ${F_UI}`).forEach((l, i) => txt(l, x + 24, y + 86 + i * 27, { size: 21, color: "#2a1a0a" }));
+  if (S.next) button("tutnext", x + w - 214, y + h - 62, 194, 48, T.step === TUT.length - 1 ? "¡A trabajar!" : "Siguiente ▶", () => { Snd.click(); if (T.step === TUT.length - 1) endTutorial(); else T.step++; }, { size: 20, color: ["#7ad46a", "#2f8a2a"] });
+  if (T.step === 4) button("tutdig", x + w - 234, y + h - 62, 214, 48, "No me lo reconoce", () => { Snd.click(); const c = curParte().player.cells; c[0].strokes = []; c[0].digit = null; c[0].dirty = false; c[1].digit = 3; c[1].conf = 1; c[1].dirty = false; if (!c[1].strokes.length) c[1].strokes = [[{ x: 15, y: 10 }, { x: 35, y: 12 }, { x: 22, y: 27 }, { x: 36, y: 38 }, { x: 28, y: 48 }, { x: 13, y: 45 }]]; for (let i = 2; i < 6; i++) { c[i].strokes = []; c[i].digit = null; c[i].dirty = false; } }, { size: 16 });
+  if (T.step < TUT.length - 1) button("tutskip", x + 20, y + h - 56, 170, 40, "Saltar tutorial", () => { Snd.click(); endTutorial(); }, { size: 15, color: ["#c9c9d8", "#6a6a8a"] });
+}
 
 /* ---------- Botones ---------- */
 function button(id, x, y, w, h, label, fn, o = {}) {
@@ -188,8 +242,13 @@ function evaluate(p) {
   let ok = true;
   if (e.ask) { if (pl.approve === null) { ok = false; msgs.push("Falta decidir si APRUEBAS la expulsión (SÍ/NO)"); } else if (pl.approve !== e.approve) { ok = false; msgs.push(e.approve ? "Era una expulsión justificada: había que APROBARLA (SÍ)" : "Expulsión desproporcionada: había que DENEGARLA (NO) y poner solo amonestación"); } }
   if (pl.boxes.join() !== want.join()) { ok = false; const w = want.indexOf(true), g = pl.boxes.map((b, i) => b ? names[i] : null).filter(Boolean); msgs.push("Casilla: marcaste " + (g.join(" + ") || "ninguna") + ", era " + names[w]); }
-  const exp = [e.d, e.w, e.m], nm = ["días", "semanas", "meses"];
-  for (let i = 0; i < 3; i++) if (vals[i] !== exp[i]) { ok = false; msgs.push(cap(nm[i]) + ": pusiste " + vals[i] + ", era " + exp[i]); }
+  // el tiempo vale en cualquier unidad: 1 mes = 28 a 31 días, 1 semana = 7 días
+  const rango = (d, w, m) => [d + 7 * w + 28 * m, d + 7 * w + 31 * m], [lo, hi] = rango(e.d, e.w, e.m), [plo, phi] = rango(vals[0], vals[1], vals[2]);
+  const exacto = vals[0] === e.d && vals[1] === e.w && vals[2] === e.m;
+  if (!exacto && !(plo >= lo && phi <= hi)) {
+    const t = (d, w, m) => d || w || m ? fmtExp({ box: 1, d, w, m }).replace("Expulsión ", "") : "nada";
+    ok = false; msgs.push("Tiempo: pusiste " + t(vals[0], vals[1], vals[2]) + ", era " + t(e.d, e.w, e.m)); if (lo !== hi) msgs.push("(en días vale de " + lo + " a " + hi + ")");
+  }
   return { ok, msgs, vals };
 }
 
@@ -248,7 +307,7 @@ function drawPaper(p, t) {
   const bb = p.sigBB, sw = Math.max(1, bb.b - bb.a), sh = Math.max(1, bb.d - bb.c), ss = Math.min(1, 250 / sw, 42 / sh);
   const total = p.sig.reduce((a, s) => a + s.length, 0), shown = Math.floor(Math.min(1, p.sigW) * total); let used = 0;
   ctx.save(); ctx.beginPath(); ctx.rect(336, 368, 272, 48); ctx.clip(); ctx.translate(342 + (250 - sw * ss) / 2 - bb.a * ss, 370 + (42 - sh * ss) / 2 - bb.c * ss); ctx.scale(ss, ss);
-  for (const s of p.sig) { const n = Math.max(0, Math.min(s.length, shown - used)); used += s.length; if (n < 1) continue; penLine(s.slice(0, n), 2.1 / ss, p.sigInk); }
+  for (const s of p.sig) { const n = Math.max(0, Math.min(s.length, shown - used)); used += s.length; if (n < 1) continue; inkLine(s.slice(0, n), 1.6 / ss, p.sigInk); }
   ctx.restore();
   // sanción propuesta: fila propia, a todo el ancho, se encoge hasta caber
   ctx.strokeStyle = "rgba(0,0,0,.3)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(26, 423); ctx.lineTo(PW - 26, 423); ctx.stroke();
@@ -352,12 +411,7 @@ function drawMenu(dt) {
   ctx.save(); ctx.globalAlpha = ta; ctx.fillStyle = "rgba(255,250,230,.95)"; rr(bx, by, bw, 62, 14); ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = "#3a200a"; ctx.stroke();
   ctx.beginPath(); ctx.moveTo(bx + 60, by + 62); ctx.lineTo(bx + 40, by + 84); ctx.lineTo(bx + 90, by + 62); ctx.fillStyle = "rgba(255,250,230,.95)"; ctx.fill(); ctx.stroke();
   const tl = wrap(MENU_TAGS[menu.tag], bw - 36, `19px ${F_HAND}`); tl.forEach((l, i) => txt(l, tx, by + 26 + i * 22 - (tl.length - 1) * 8, { size: 21, font: F_HAND, color: "#3a200a", align: "center" })); ctx.restore();
-  // botones
-  const pulse = 1 + Math.sin(t * 4) * 0.02; ctx.save(); ctx.translate(tx, 330); ctx.scale(pulse, pulse); ctx.translate(-tx, -330);
-  button("play", tx - 190, 300, 380, 72, "▶  INICIAR JORNADA", () => { Snd.click(); go("play", () => { newGame(); Snd.music("play"); }); }, { size: 30, color: ["#7ad46a", "#2f8a2a"] }); ctx.restore();
-  button("how", tx - 190, 392, 380, 54, "¿Cómo se juega?", () => { Snd.click(); scene = "howto"; });
-  button("snd", tx - 190, 460, 380, 54, Snd.muted ? "🔇  Sonido: NO" : "🔊  Sonido: SÍ", () => { Snd.toggle(); Snd.click(); }, { color: ["#9ab8e8", "#4a68a8"] });
-  txt("🏆 Récord: " + best + " pts", tx, 548, { size: 24, align: "center", color: "#fff2b0", stroke: "#2a0f06", sw: 6, weight: "bold" });
+  menuButtons(t, tx);
   button("full", W - 76, 14, 60, 48, "⛶", () => { Snd.click(); try { const d = document.documentElement; if (document.fullscreenElement) document.exitFullscreen(); else if (d.requestFullscreen) d.requestFullscreen().then(() => { try { screen.orientation.lock("landscape").catch(() => { }); } catch (e) { } }).catch(() => { }); } catch (e) { } }, { size: 26, color: ["#9ab8e8", "#4a68a8"] });
   txt("Obra de ficción y parodia · nombres, personas y hechos inventados", W / 2, 706, { size: 13, font: F_TYPE, align: "center", color: "rgba(255,255,255,.55)" });
   txt("Ratón / táctil · M = sonido · Enter = entregar · P = pausa", W / 2, 24, { size: 14, font: F_TYPE, align: "center", color: "rgba(255,255,255,.65)" });
@@ -378,7 +432,9 @@ function drawHowto() {
   ];
   let y = -214; for (const [n, s] of L) { txt(n, -420, y + 4, { size: 26, font: F_TITLE, color: "#8a2a1a" }); const ls = wrap(s, 800, `22px ${F_UI}`); ls.forEach((l, i) => txt(l, -385, y + i * 24, { size: 19, color: "#2a1a0a" })); y += 24 * ls.length + 10; }
   ctx.restore();
-  button("back", W / 2 - 110, 604, 220, 54, "Entendido", () => { Snd.click(); scene = "menu"; }, { size: 24 });
+  txt(COPY, 20, 708, { size: 12, font: F_TYPE, color: "rgba(255,255,255,.7)" });
+  button("back", W / 2 - 250, 650, 220, 48, "Entendido", () => { Snd.click(); scene = "menu"; }, { size: 22 });
+  button("tuto", W / 2 + 30, 650, 220, 48, "Ver tutorial", () => { Snd.click(); tutorialForced = true; go("play", () => { newGame(); Snd.music("play"); }); }, { size: 22, color: ["#7ad46a", "#2f8a2a"] });
 }
 
 /* ---------- ESCENA: JUEGO ---------- */
@@ -401,7 +457,8 @@ function spawn(boss) {
   if (p.teacher.bear && chance(0.5)) toast("¡Bear ha puesto un parte!", "#ffd75e");
 }
 function deliver() {
-  const p = curParte(); if (!p || p.st !== "work" || G.paused) return;
+  const p = curParte(); if (!p || p.st !== "work" || G.paused || G.shop || G.call) return;
+  if (G.tut) { if (G.tut.step !== 6) return; const r = evaluate(p); if (!r.ok) { Snd.bad(); toast("Revisa: " + r.msgs[0], "#ff8a6a"); return; } }
   const pl = p.player, sigLen = pl.sig.reduce((a, s) => a + s.reduce((q, pt, i) => q + (i ? Math.hypot(pt.x - s[i - 1].x, pt.y - s[i - 1].y) : 0), 0), 0);
   if (sigLen < 90) { shake = 0.4; Snd.bad(); toast("¡Falta tu firma!", "#ff8a6a"); return; }
   p.result = evaluate(p); p.st = "stamp"; p.at = 0; Snd.stamp(); setTimeout(() => p.result.ok ? Snd.ok() : Snd.bad(), 150);
@@ -410,18 +467,18 @@ function deliver() {
   const work = now - p.born; G.last = { p, r: p.result, ok: p.result.ok };
   if (p.result.ok) {
     G.combo++; G.maxCombo = Math.max(G.maxCombo, G.combo);
-    const pts = 100 + Math.min(G.combo, 12) * 12 + Math.max(0, Math.round(60 - work * 2.5)) + (p.boss ? 500 : 0) + p.sev * 15;
-    G.score += pts; G.stress = Math.max(0, G.stress - (p.boss ? 20 : 5)); G.last.pts = pts; feed("+" + pts + " pts · combo x" + G.combo, "#8fe28f");
+    let pts = 100 + Math.min(G.combo, 12) * 12 + Math.max(0, Math.round(60 - work * 2.5)) + (p.boss ? 500 : 0) + p.sev * 15;
+    if (p.informed) pts += 50; if (G.items.sello) pts = Math.round(pts * 1.2); earn(10 + p.sev * 3 + Math.min(G.combo, 10) + (p.boss ? 60 : 0), PX + 320, PY + 420); G.score += pts; G.stress = Math.max(0, G.stress - (p.boss ? 20 : 5)); G.last.pts = pts; feed("+" + pts + " pts · combo x" + G.combo, "#8fe28f");
   } else {
     G.combo = 0; G.wrong++; G.stress = Math.min(100, G.stress + (p.boss ? 20 : 11)); G.score = Math.max(0, G.score - 40); G.last.pts = -40; shake = 0.6; feed("Parte mal rellenado: −40 pts, ¡estrés!", "#ff8a8a");
   }
 }
 function voidParte() {
-  const p = curParte(); if (!p || p.st !== "work" || G.paused) return;
+  const p = curParte(); if (!p || p.st !== "work" || G.paused || G.shop || G.call || G.tut) return;
   p.st = "void"; p.at = 0; Snd.void();
   if (p.expected.void) { // parte sin sentido: anularlo es lo correcto
     p.voidGood = true; G.combo++; G.maxCombo = Math.max(G.maxCombo, G.combo); G.score += 150; G.stress = Math.max(0, G.stress - 4); addRigor(-1); G.voids++;
-    G.last = { p, ok: true, good: true, voided: true, r: { ok: true, msgs: [] }, pts: 150 }; feed("Parte sin sentido anulado: +150 pts. ¡Buen ojo!", "#8fe28f"); Snd.ok();
+    G.last = { p, ok: true, good: true, voided: true, r: { ok: true, msgs: [] }, pts: 150 }; feed("Parte sin sentido anulado: +150 pts. ¡Buen ojo!", "#8fe28f"); Snd.ok(); earn(15, PX + 320, PY + 360);
   } else {
     const pen = p.boss ? 150 : 25; G.combo = 0; G.score = Math.max(0, G.score - pen); G.voids++; if (p.boss) G.stress = Math.min(100, G.stress + 10);
     addRigor(-1); G.last = { p, ok: false, voided: true, r: { ok: false, msgs: ["Parte anulado"] }, pts: -pen };
@@ -434,23 +491,26 @@ function finishParte() {
   if (!voided || p.voidGood) {
     G.dayCount++;
     if (G.dayCount >= DAY_LEN) {
-      G.dayCount = 0; const done = G.day; G.day++; G.stress = Math.max(0, G.stress - 8); Snd.bell(); toast("Fin de la jornada " + done, "#ffd75e", true); feed("Jornada " + done + " terminada: −8 estrés", "#ffd75e");
+      G.dayCount = 0; const done = G.day; G.day++; G.stress = Math.max(0, G.stress - 8); Snd.bell(); toast("Fin de la jornada " + done, "#ffd75e", true); feed("Jornada " + done + " terminada: −8 estrés", "#ffd75e"); earn(25, 640, 360);
       if (done % EVAL_EVERY === 0) evalNow = true; else if (done % EVAL_EVERY === EVAL_EVERY - 1) feed("¡Mañana hay sesión de evaluación!", "#ff9a6a");
     }
   }
   if (!G.queue.length) G.spawnT = Math.min(G.spawnT, 2);
   if (evalNow) { startEval(); return; }
-  if (!voided && chance(0.10)) startMother(p); else setupCur();
+  if (!G.tut && (p.insulted || (!voided && chance(p.momChance !== undefined ? p.momChance : G.items.cartel ? 0.05 : 0.10)))) startMother(p); else setupCur();
+  saveGame();
 }
 function updatePlay(dt) {
-  if (G.paused || G.over) return;
+  if (G.paused || G.over || G.shop || G.call) return;
+  G.saveT -= dt; if (G.saveT <= 0) { G.saveT = 10; saveGame(); }
   if (PAD && (!curParte() || curParte().st !== "work")) PAD = null;
   G.time += dt; Snd.music(G.stress > 70 ? "tense" : "play");
+  if (G.tut) { updateTutorial(); G.spawnT = 8; G.feedT = 10; }
   const interval = Math.max(6.5, 15 - G.signed * 0.4); G.spawnT -= dt;
   if (G.spawnT <= 0) { spawn(false); G.spawnT = interval * rnd(0.7, 1.3); if (curParte() && !curParte().st) setupCur(); }
   { const cp = curParte(); if (cp && !cp.st) setupCur(); }
   G.feedT -= dt; if (G.feedT <= 0) { G.feedT = rnd(14, 24); feed(pick(FEED_RELAX), "#9fe"); }
-  const ql = G.queue.length; G.stress += (ql > 3 ? (ql - 3) * 0.45 : -0.5) * dt; G.stress = Math.max(0, Math.min(100, G.stress));
+  const ql = G.queue.length; const lim = G.items.secre ? 5 : 3; G.stress += (ql > lim ? (ql - lim) * (G.items.planta ? 0.32 : 0.45) : (G.items.planta ? -0.9 : -0.5)) * dt; G.stress = Math.max(0, Math.min(100, G.stress));
   if (G.cd > 0) G.cd -= dt;
   const p = curParte();
   if (p) {
@@ -462,7 +522,7 @@ function updatePlay(dt) {
     else if (p.st === "exit" || p.st === "void") { if (p.at > 0.5) finishParte(); }
     for (const c of p.player.cells) if (c.dirty && now > c.t && !(drag && drag.kind === "cell")) { const r = recognize(c.strokes); c.digit = r ? r.d : null; c.conf = r ? r.conf : 0; c.dirty = false; if (r) Snd.tick(); }
   }
-  if (G.stress >= 100 && !G.over) { G.over = true; Snd.bell(); setTimeout(() => go("over", () => { Snd.music("office"); if (G.score > best) { best = G.score; try { localStorage.setItem("ftp_best", best); } catch (e) { } G.newBest = true; } }), 700); }
+  if (G.stress >= 100 && !G.over) { G.over = true; clearSave(); Snd.bell(); setTimeout(() => go("over", () => { Snd.music("office"); if (G.score > best) { best = G.score; try { localStorage.setItem("ftp_best", best); } catch (e) { } G.newBest = true; } }), 700); }
 }
 function paperXform(p) {
   let ox = 0, oy = 0, rot = 0;
@@ -483,6 +543,8 @@ function drawHUD() {
   const rk = RANKS[G.rank], nx = RANKS[G.rank + 1], pr = nx ? (G.rigor - rk[0]) / (nx[0] - rk[0]) : 1;
   txt("🎓 " + rk[1], x0 + 22, 152, { size: 16, weight: "bold", color: "#ffb84a" });
   ctx.fillStyle = "#1a0d06"; rr(x0 + 330, 140, 130, 10, 5); ctx.fill(); ctx.fillStyle = "#ff8a3a"; rr(x0 + 330, 140, Math.max(6, 130 * pr), 10, 5); ctx.fill(); txt("mano dura", x0 + 468, 150, { size: 11, font: F_TYPE, color: "#c9a870" });
+  drawCoin(x0 + 374, 94, 14); txt(String(G.coins), x0 + 394, 103, { size: 26, weight: "bold", color: "#ffd75e" });
+  button("shop", x0 + 316, 24, 128, 36, "🏪 Tienda", () => { G.shop = true; Snd.click(); }, { size: 17, disabled: !!G.tut });
   // taza
   const mx = 1196, my = 78; if (IM.mug) ctx.drawImage(IM.mug, mx - 54, my - 50, 108, 108); else { ctx.fillStyle = "#e8e0d0"; rr(mx - 26, my - 20, 46, 44, 8); ctx.fill(); ctx.strokeStyle = "#1a0f0a"; ctx.lineWidth = 3; ctx.stroke(); ctx.beginPath(); ctx.arc(mx + 22, my, 12, -1.5, 1.5); ctx.stroke(); ctx.fillStyle = "#4a2a14"; ctx.fillRect(mx - 22, my - 16, 38, 8); }
   for (let i = 0; i < 3; i++) { ctx.strokeStyle = `rgba(255,255,255,${0.5 - i * 0.12})`; ctx.lineWidth = 3; ctx.beginPath(); const o = (now * 20 + i * 30) % 60; ctx.moveTo(mx - 10 + i * 10, my - 24); ctx.bezierCurveTo(mx - 20 + i * 10 + Math.sin(now * 3 + i) * 6, my - 40 - o * 0.2, mx + i * 10, my - 50, mx - 6 + i * 10 + Math.sin(now * 2 + i) * 8, my - 60 - o * 0.3); ctx.stroke(); }
@@ -506,6 +568,7 @@ function drawHUD() {
     if (L.voided) { } else if (L.ok) txt(L.p.student.first + " · " + fmtExp(L.p.expected), x0 + 202, 366, { size: 13, color: "#e8d8b0" });
     else L.r.msgs.slice(0, 3).forEach((m, i) => txt(m, x0 + 202, 366 + i * 17, { size: 13, color: "#ffc8b0" }));
   } else txt("Aún no has firmado ninguno.", x0 + 202, 346, { size: 14, color: "#9a8a60" });
+  button("callhome", x0 + 360, 434, 170, 34, curParte() && curParte().called ? "📞 Ya llamada" : "📞 Llamadita a casa", () => { const p = curParte(); if (p && p.st === "work" && !p.called) { Snd.click(); startCall(p); } }, { size: 15, disabled: !curParte() || curParte().st !== "work" || !!G.tut || !!curParte().called, color: ["#9fe0b0", "#3a8a5a"] });
   // feed
   txt("AVISOS", x0 + 22, 452, { size: 11, font: F_TYPE, color: "#c9a870" });
   G.feed.slice(0, 6).forEach((f, i) => { const a = Math.max(0.25, 1 - i * 0.16); ctx.save(); ctx.globalAlpha = Math.min(1, f.age * 4) * a; const ls = wrap("• " + f.t, 500, `14px ${F_UI}`); txt(ls[0], x0 + 22, 472 + i * 20, { size: 14, color: f.c }); ctx.restore(); });
@@ -514,8 +577,8 @@ function drawHUD() {
   const cur = curParte(), can = cur && cur.st === "work";
   button("deliver", x0 + 14, 624, 190, 72, "ENTREGAR", deliver, { size: 26, color: ["#7ad46a", "#2f8a2a"], disabled: !can, sub: "(Enter)" });
   const cdOn = G.cd > 0;
-  button("void", x0 + 210, 624, 140, 72, "ANULAR", voidParte, { size: 22, disabled: !can, color: ["#c9c9d8", "#6a6a8a"], sub: "tirar el parte", tc: "#1a1a2a" });
-  button("vent", x0 + 356, 624, 140, 72, cdOn ? Math.ceil(G.cd) + " s" : "DESAHÓGATE", () => { if (G.cd > 0) return; G.cd = 25; G.stress = Math.max(0, G.stress - 25); shake = 1; Snd.scream(); toast("¡AAAAARGH! ¡Qué a gusto!", "#ffb84a", true); feed("Te has desahogado: −25 estrés", "#9fe"); for (let i = 0; i < 45; i++) parts.push({ x: 380, y: 300, vx: rnd(-500, 500), vy: rnd(-700, -100), r: rnd(0, 6), vr: rnd(-8, 8), life: rnd(1, 2), c: pick(["#fff", "#ffe08a", "#ff8a6a", "#9fe"]) }); }, { size: cdOn ? 26 : 16, disabled: cdOn, color: ["#ff9a5a", "#c0401a"], sub: cdOn ? "enfriando" : "−25 estrés" });
+  button("void", x0 + 210, 624, 140, 72, "ANULAR", voidParte, { size: 22, disabled: !can || !!G.tut, color: ["#c9c9d8", "#6a6a8a"], sub: "tirar el parte", tc: "#1a1a2a" });
+  button("vent", x0 + 356, 624, 140, 72, cdOn ? Math.ceil(G.cd) + " s" : "DESAHÓGATE", () => { if (G.cd > 0) return; G.cd = 25; G.stress = Math.max(0, G.stress - 25); shake = 1; Snd.scream(); toast("¡AAAAARGH! ¡Qué a gusto!", "#ffb84a", true); feed("Te has desahogado: −25 estrés", "#9fe"); for (let i = 0; i < 45; i++) parts.push({ x: 380, y: 300, vx: rnd(-500, 500), vy: rnd(-700, -100), r: rnd(0, 6), vr: rnd(-8, 8), life: rnd(1, 2), c: pick(["#fff", "#ffe08a", "#ff8a6a", "#9fe"]) }); }, { size: cdOn ? 26 : 16, disabled: cdOn || !!G.tut, color: ["#ff9a5a", "#c0401a"], sub: cdOn ? "enfriando" : "−25 estrés" });
   button("pause", x0 + 502, 624, 46, 34, "⏸", () => { G.paused = true; Snd.click(); }, { size: 18, color: ["#9ab8e8", "#4a68a8"] });
   button("mute", x0 + 502, 662, 46, 34, Snd.muted ? "🔇" : "🔊", () => { Snd.toggle(); Snd.click(); }, { size: 16, color: ["#9ab8e8", "#4a68a8"] });
 }
@@ -533,12 +596,15 @@ function drawPlay(dt) {
   if (p && p.st === "stamp" && IM.stamp) { const t = p.at, dy = t < 0.16 ? -(1 - t / 0.16) * 280 : t < 0.42 ? 0 : -((t - 0.42) / 0.4) * 280; ctx.save(); ctx.globalAlpha = Math.min(1, (0.85 - t) * 6); ctx.shadowColor = "rgba(0,0,0,.4)"; ctx.shadowBlur = 16; ctx.drawImage(IM.stamp, PX + 470 - 55, PY + 650 - 138 + dy, 110, 154); ctx.restore(); }
   drawHUD();
   if (p && p.st === "work" && p.boss) { ctx.fillStyle = `rgba(255,0,0,${0.06 + 0.05 * Math.sin(now * 8)})`; ctx.fillRect(0, 0, W, H); }
+  if (G.tut && !PAD && !G.paused) drawTutorial();
   if (drag && IM.pen && !coarse) { ctx.save(); ctx.translate(M.x, M.y); ctx.rotate(-0.62); ctx.shadowColor = "rgba(0,0,0,.35)"; ctx.shadowBlur = 8; ctx.shadowOffsetY = 6; ctx.drawImage(IM.pen, -4, -27, 230, 56); ctx.restore(); }
   if (PAD) drawPad();
+  if (G.shop) drawShop();
+  if (G.call) drawCall(dt);
   if (G.paused) {
-    ctx.fillStyle = "rgba(10,5,20,.75)"; ctx.fillRect(0, 0, W, H); txt("PAUSA", W / 2, 280, { size: 96, font: F_TITLE, align: "center", color: "#ffd98a", stroke: "#2a0f06" });
+    ctx.fillStyle = "rgba(10,5,20,.75)"; ctx.fillRect(0, 0, W, H); txt(COPY, W / 2, 690, { size: 14, font: F_TYPE, align: "center", color: "rgba(255,255,255,.7)" }); txt("PAUSA", W / 2, 280, { size: 96, font: F_TITLE, align: "center", color: "#ffd98a", stroke: "#2a0f06" });
     button("resume", W / 2 - 150, 330, 300, 62, "Continuar", () => { G.paused = false; Snd.click(); }, { size: 26 });
-    button("tomenu", W / 2 - 150, 410, 300, 54, "Abandonar jornada", () => { Snd.click(); go("menu", () => { Snd.music("menu"); }); }, { size: 20, color: ["#ff9a8a", "#b0402a"] });
+    button("tomenu", W / 2 - 150, 410, 300, 54, "Guardar y salir al menú", () => { Snd.click(); saveGame(); go("menu", () => { Snd.music("menu"); }); }, { size: 20, color: ["#ff9a8a", "#b0402a"] });
   }
 }
 
@@ -594,6 +660,7 @@ function momDecide(keep) {
   const r = S2.reason, correct = keep ? !r.valid : r.valid; let pts, ds;
   if (correct) { pts = S2.called ? 120 : 200; ds = -8; } else { pts = -120; ds = 14; }
   G.score = Math.max(0, G.score + pts); G.stress = Math.max(0, Math.min(100, G.stress + ds));
+  if (correct) earn(20, 640, 360);
   S2.res = { correct, pts, keep }; S2.stage = "result"; S2.t = 0; S2.happy = correct && !keep ? 1 : 0;
   if (correct) { Snd.ok(); S2.momAngry = keep ? 1 : 0; } else { Snd.bad(); S2.momAngry = keep ? 1 : 0; }
   G.last = { p: S2.p, r: { ok: correct, msgs: [] }, ok: correct, pts };
@@ -623,13 +690,14 @@ function drawMotherRoom() {
 }
 function updateMother(dt) {
   S2.t += dt; dlgUpdate(dt); S2.ph += dt * 9;
-  if (S2.stage === "arrive") { S2.x = Math.max(300, 1400 - ease(S2.t / 2.1) * 1100); if (Math.floor(S2.t * 4) !== Math.floor((S2.t - dt) * 4) && S2.t < 2) Snd.step(); if (S2.t > 2.2) { S2.stage = "rant"; S2.t = 0; dlgPush("Madre de " + S2.p.student.first + " (" + S2.mom + ")", gen(pick(MOM_ARRIVE), S2.p.student.gender, S2.p.student.first), 300, "#8a2a1a"); dlgPush("Madre de " + S2.p.student.first + " (" + S2.mom + ")", momReason(), 300, "#8a2a1a"); Snd.angryVoice(); } }
+  if (S2.stage === "arrive") { S2.x = Math.max(300, 1400 - ease(S2.t / 2.1) * 1100); if (Math.floor(S2.t * 4) !== Math.floor((S2.t - dt) * 4) && S2.t < 2) Snd.step(); if (S2.t > 2.2) { S2.stage = "rant"; S2.t = 0; if (S2.p.insulted) dlgPush("Madre de " + S2.p.student.first + " (" + S2.mom + ")", "¡¿ASÍ QUE «A TOMAR POR CULO»?! ¡A ver si me lo repite a la cara!", 330, "#8a2a1a"); dlgPush("Madre de " + S2.p.student.first + " (" + S2.mom + ")", gen(pick(MOM_ARRIVE), S2.p.student.gender, S2.p.student.first), 300, "#8a2a1a"); dlgPush("Madre de " + S2.p.student.first + " (" + S2.mom + ")", momReason(), 300, "#8a2a1a"); Snd.angryVoice(); } }
   if (S2.stage === "rant" && DLG.done && !DLG.cur && S2.t > 0.3) S2.stage = "choice";
   if (S2.stage === "info" && DLG.done && !DLG.cur && S2.t > 0.3) S2.stage = "choice";
   if (S2.stage === "result" && DLG.done && S2.t > 3.2) { S2.stage = "leave"; S2.t = 0; }
   if (S2.stage === "leave") { S2.x += dt * 340; if (S2.x > 1400) { endMother(); } }
 }
-function endMother() { const p = S2; S2 = null; go("play", () => { Snd.music("play"); setupCur(); }); }
+// S2 se borra cuando el fundido ya ha cambiado de escena (antes se borraba mientras aún se dibujaba y congelaba el juego)
+function endMother() { if (fade.dir) return; go("play", () => { S2 = null; DLG.q = []; DLG.cur = null; DLG.done = true; Snd.music("play"); setupCur(); saveGame(); }); }
 function drawOrigPaper(s) {
   ctx.fillStyle = "rgba(8,4,14,.9)"; ctx.fillRect(0, 0, W, H); const p = s.p, k = 0.99;
   ctx.save(); ctx.translate((W - PW * k) / 2, 8); ctx.scale(k, k); drawPaper(p, now); ctx.restore();
@@ -780,6 +848,7 @@ function drawOver() {
   rows.forEach(([a, b], i) => { txt(a, -250, -115 + i * 36, { size: 24, color: "#3a200a" }); txt(String(b), 250, -115 + i * 36, { size: 28, weight: "bold", align: "right", color: "#1a0f0a" }); ctx.strokeStyle = "rgba(60,30,10,.25)"; ctx.beginPath(); ctx.moveTo(-250, -105 + i * 36); ctx.lineTo(250, -105 + i * 36); ctx.stroke(); });
   if (G.newBest) txt("🏆 ¡NUEVO RÉCORD!", 0, 175, { size: 38, font: F_TITLE, align: "center", color: "#c07000", rot: Math.sin(now * 6) * 0.03 }); else txt("Récord: " + best, 0, 175, { size: 24, align: "center", color: "#6a4a20" });
   ctx.restore();
+  txt(COPY, W / 2, 696, { size: 14, font: F_TYPE, align: "center", color: "rgba(255,255,255,.7)" });
   button("again", W / 2 - 320, 570, 300, 70, "Otra jornada", () => { Snd.click(); go("play", () => { newGame(); Snd.music("play"); }); }, { size: 28, color: ["#7ad46a", "#2f8a2a"] });
   button("tomenu2", W / 2 + 20, 570, 300, 70, "Menú principal", () => { Snd.click(); go("menu", () => Snd.music("menu")); }, { size: 26 });
 }
@@ -798,13 +867,14 @@ function drawFx(dt) {
 
 /* ---------- ENTRADA ---------- */
 function pt(e) { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * H / r.height }; }
-function paperLocal() { const p = curParte(); if (!p || p.st !== "work" || G.paused || PAD) return null; return { x: M.x - PX, y: M.y - PY, p }; }
+function paperLocal() { const p = curParte(); if (!p || p.st !== "work" || G.paused || G.shop || G.call || PAD) return null; return { x: M.x - PX, y: M.y - PY, p }; }
 cv.addEventListener("pointerdown", e => {
-  e.preventDefault(); Snd.init(); if (!Snd.musicMode) Snd.music(scene === "menu" ? "menu" : "play");
-  const q = pt(e); M.x = q.x; M.y = q.y; M.down = true; if (fade.dir) return; try { cv.setPointerCapture(e.pointerId); } catch (er) { }
+  e.preventDefault(); Snd.init(); if (!Snd.musicMode && !["press", "splash", "black", "loading"].includes(scene)) Snd.music(scene === "menu" || scene === "howto" ? "menu" : "play");
+  const q = pt(e); M.x = q.x; M.y = q.y; M.down = true; if (scene === "press") { startSplash(); return; } if (fade.dir || ["splash", "black", "loading"].includes(scene)) return; try { cv.setPointerCapture(e.pointerId); } catch (er) { }
   for (let i = btns.length - 1; i >= 0; i--) { const b = btns[i]; if (!b.disabled && M.x >= b.x && M.x <= b.x + b.w && M.y >= b.y && M.y <= b.y + b.h) { b.fn(); return; } }
   if ((scene === "mother" || scene === "office") && S2 && S2.showP) return;
   if (scene === "mother" || scene === "office") { if (dlgClick()) return; if (DLG.cur && DLG.done) { dlgNext(); return; } }
+  if (scene === "play" && G.call) { callSkip(); return; }
   if (scene === "play" && PAD) { if (M.x >= PAD.x && M.x <= PAD.x + PAD.w && M.y >= PAD.y && M.y <= PAD.y + PAD.h) { const s = []; padPoint(s); const p = curParte(), pl = p.player; if (PAD.kind === "cell") pl.cells[PAD.idx].strokes.push(s); else pl.sig.push(s); PAD.s = s; Snd.penStart(); } return; }
   if (scene === "play") {
     const L = paperLocal(); if (!L) return; const p = L.p, pl = p.player; coarse = e.pointerType === "touch" || e.pointerType === "pen";
@@ -840,7 +910,7 @@ cv.addEventListener("contextmenu", e => e.preventDefault());
 addEventListener("keydown", e => {
   Snd.init();
   if (e.key === "m" || e.key === "M") Snd.toggle();
-  if (scene === "play" && G) { if (e.key === "Enter") deliver(); if (e.key === "Escape" && PAD) PAD = null; else if (e.key === "p" || e.key === "P" || e.key === "Escape") G.paused = !G.paused; }
+  if (scene === "play" && G) { if (e.key === "Enter") deliver(); if (e.key === "Escape" && PAD) PAD = null; else if (e.key === "Escape" && G.shop) G.shop = false; else if (e.key === "p" || e.key === "P" || e.key === "Escape") G.paused = !G.paused; }
   if ((scene === "mother" || scene === "office") && !(S2 && S2.showP) && (e.key === " " || e.key === "Enter")) { if (!dlgClick() && DLG.cur && DLG.done) dlgNext(); }
   if (scene === "howto" && e.key === "Escape") scene = "menu";
 });
@@ -849,21 +919,25 @@ document.addEventListener("visibilitychange", () => { if (document.hidden && sce
 /* ---------- BUCLE ---------- */
 let lastT = performance.now();
 function frame(t) {
+  requestAnimationFrame(frame); // se pide primero: un error en un fotograma no congela el juego
   const dt = Math.min(0.05, (t - lastT) / 1000); lastT = t; now += dt; btns = [];
   ctx.setTransform(K, 0, 0, K, 0, 0); ctx.clearRect(0, 0, W, H);
   ctx.save(); if (shake > 0) { ctx.translate(rnd(-1, 1) * shake * 10, rnd(-1, 1) * shake * 10); shake = Math.max(0, shake - dt * 2.2); }
-  if (scene === "menu" || scene === "howto") { drawMenu(dt); if (scene === "howto") drawHowto(); }
+  if (scene === "press") drawPress();
+  else if (scene === "splash") drawSplash(dt);
+  else if (scene === "black") drawBlack(dt);
+  else if (scene === "loading") drawLoading(dt);
+  else if (scene === "menu" || scene === "howto") { drawMenu(dt); if (scene === "howto") drawHowto(); }
   else if (scene === "play") { updatePlay(dt); drawPlay(dt); }
   else if (scene === "mother") { if (S2) { updateMother(dt); drawMother(dt); } }
   else if (scene === "office") { if (S2) { updateOffice(dt); drawOffice(); } }
   else if (scene === "eval") drawEval(dt);
   else if (scene === "over") drawOver();
-  Snd.penTick(); drawFx(dt); ctx.restore();
+  Snd.penTick(); drawFx(dt); drawCoinFx(dt); ctx.restore();
   if (fade.dir) { fade.a += dt * 4.5 * fade.dir; if (fade.dir > 0 && fade.a >= 1) { fade.a = 1; scene = fade.next; if (fade.fn) fade.fn(); fade.dir = -1; } else if (fade.dir < 0 && fade.a <= 0) { fade.a = 0; fade.dir = 0; } ctx.fillStyle = `rgba(10,5,15,${fade.a})`; ctx.fillRect(0, 0, W, H); }
-  requestAnimationFrame(frame);
 }
 (async function boot() {
-  try { await Promise.race([Promise.all([document.fonts.load("40px UnifrakturCook"), document.fonts.load("22px 'Patrick Hand'"), document.fonts.load("14px 'Special Elite'"), document.fonts.load("16px Lora")]), new Promise(r => setTimeout(r, 2500))]); } catch (e) { }
+  try { await Promise.race([Promise.all([document.fonts.load("40px UnifrakturCook"), document.fonts.load("22px 'Patrick Hand'"), document.fonts.load("14px 'Special Elite'"), document.fonts.load("16px Lora"), new Promise(r => { if (LOGO.complete) r(); else LOGO.onload = LOGO.onerror = r; })]), new Promise(r => setTimeout(r, 2500))]); } catch (e) { }
   document.getElementById("loading").style.display = "none"; requestAnimationFrame(frame);
 })();
-window.__dbg = { DLG, startEval: () => startEval(), get EV() { return EV; }, evalDecide: o => evalDecide(o), setPad: (k) => { PAD = k; }, get G() { return G; }, get S2() { return S2; }, go, newGame, recognize, get scene() { return scene; }, startMother, deliver, evaluate };
+window.__dbg = { startCall: p => startCall(p), get CALL() { return CALL; }, callChoose: o => callChoose(o), closeCall: () => closeCall(), press: () => startSplash(), saveGame: () => saveGame(), loadGame: () => loadGame(), get save() { return saveCache; }, earn: n => earn(n), buy: id => buyItem(SHOP.find(x => x.id === id)), DLG, startEval: () => startEval(), get EV() { return EV; }, evalDecide: o => evalDecide(o), setPad: (k) => { PAD = k; }, get G() { return G; }, get S2() { return S2; }, go, newGame, recognize, get scene() { return scene; }, startMother, deliver, evaluate };

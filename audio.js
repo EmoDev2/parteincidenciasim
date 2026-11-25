@@ -1,5 +1,5 @@
 /* ===== AUDIO: sintetizado moderno (WebAudio) + MP3 opcionales en /audio ===== */
-const SFX_NAMES = ["click", "hover", "paper", "paperOut", "stamp", "ding", "ok", "bad", "bell", "alarm", "knock", "door", "step", "scream", "chair", "boss", "angryVoice", "fanfare", "tick", "void"];
+const SFX_NAMES = ["click", "hover", "paper", "paperOut", "stamp", "ding", "ok", "bad", "bell", "alarm", "knock", "door", "step", "scream", "chair", "boss", "angryVoice", "fanfare", "tick", "void", "coin", "spend", "denied", "ring", "hang"];
 const MUSIC_NAMES = ["menu", "play", "tense", "office"];
 // c = notas del acorde (semitonos sobre la tónica del acorde), r = desplazamiento de la tónica
 const MODES = {
@@ -129,6 +129,12 @@ const Snd = {
   blip(p) { const f = p * (0.95 + Math.random() * 0.12); this.note(f, 0.07, 0, 0.06, { parts: [["sine", 1, 1], ["triangle", 2, 0.3]], lp: 2500, atk: 0.008, dest: this.sfx }); },
   angryVoice() { this.note(220, 0.6, 0, 0.07, { parts: [["sawtooth", 1, 1]], lp: 900, atk: 0.05, dest: this.sfx }); this.noise(0.5, 900, 3, 0.05, "bandpass", 300); },
   money(good) { if (good) this.ok(); else this.bad(); },
+  // monedas: tintineo metálico al ganar, caja registradora al gastar
+  coin() { [[1975, 0], [2637, 0.07], [3136, 0.12]].forEach(([f, d]) => { this.tone(f, 0.28, "sine", 0.09, 0, d); this.tone(f * 2.76, 0.12, "sine", 0.025, 0, d); this.noise(0.015, 7000, 2, 0.05, "highpass", 0, d); }); },
+  spend() { this.noise(0.05, 1800, 2, 0.22, "bandpass"); this.noise(0.07, 600, 1, 0.2, "lowpass", 0, 0.07); [[1568, 0.14], [2093, 0.14], [2637, 0.15]].forEach(([f, d]) => { this.tone(f, 0.7, "sine", 0.08, 0, d); this.tone(f * 2.4, 0.25, "sine", 0.02, 0, d); }); for (let i = 0; i < 7; i++) this.tone(2500 + Math.random() * 2500, 0.07, "sine", 0.035, 0, 0.3 + Math.random() * 0.3); },
+  ring() { for (let i = 0; i < 14; i++) { this.tone(i % 2 ? 480 : 440, 0.055, "sine", 0.1, 0, i * 0.055); this.tone(i % 2 ? 620 : 590, 0.055, "sine", 0.05, 0, i * 0.055); } },
+  hang() { this.noise(0.04, 900, 2, 0.25, "bandpass"); this.tone(425, 0.18, "sine", 0.08, 0, 0.12); this.tone(425, 0.18, "sine", 0.08, 0, 0.42); },
+  denied() { this.tone(160, 0.16, "triangle", 0.2, -30); this.tone(130, 0.22, "triangle", 0.2, -30, 0.17); },
   /* ---- pluma real: ruido continuo que sigue la velocidad ---- */
   penStart(id = "me") {
     if (!this.ctx || this.pens[id]) return; const c = this.ctx, s = c.createBufferSource(), bp = c.createBiquadFilter(), hp = c.createBiquadFilter(), g = c.createGain();
